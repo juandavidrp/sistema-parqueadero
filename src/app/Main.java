@@ -171,6 +171,7 @@ public class Main {
                 ocupadas++;
             } else {
                 System.out.println("Celda #" + (i + 1) + ": [LIBRE]");
+
             }
         }
         System.out.println("Ocupadas: " + ocupadas + " | Libres: " + (CAPACIDAD_TOTAL - ocupadas) + "\n");
