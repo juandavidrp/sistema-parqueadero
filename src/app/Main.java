@@ -56,9 +56,15 @@ public class Main {
 
 
     static int  buscarCeldaDisponible(){
-        return 1;
+            for (int i = 0; i < CAPACIDAD_TOTAL; i++) {
+                if (tiposVehiculos[i] == null) {
+                    return i;
+                }
+            }
+            return -1;
+        }
 
-    }
+
 
     static boolean formatoFechaHoraValido(String texto) {
         if (texto.length() != 16
@@ -68,6 +74,7 @@ public class Main {
                 || texto.charAt(13) != ':') {
             return false;
         }
+
 
         int anio = leerDigitos(texto, 0, 4);
         int mes = leerDigitos(texto, 5, 2);
