@@ -1,4 +1,5 @@
 package app;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.Duration;
@@ -25,6 +26,58 @@ public class Main {
     static int recaudoCarros = 0;
     static int recaudoMotos = 0;
 
+    // --- Menú Principal ---
+    public static void main(String[] args) {
+        int opcion = 0;
+        do {
+            System.out.println("\n=== SISTEMA DE PARQUEADERO ===");
+            System.out.println("1. Registrar Entrada");
+            System.out.println("2. Registrar Salida y Liquidación");
+            System.out.println("3. Reporte de Ocupación");
+            System.out.println("4. Reporte Financiero");
+            System.out.println("5. Salir");
+            System.out.print("Seleccione una opción: ");
+
+            try {
+                opcion = Integer.parseInt(SCANNER.nextLine());
+                switch (opcion) {
+                    case 1:
+                        registrarEntrada();
+                        break;
+                    case 2:
+                        registrarSalida();
+                        break;
+                    case 3:
+                        mostrarReporteOcupacion();
+                        break;
+                    case 4:
+                        mostrarReporteFinanciero();
+                        break;
+                    case 5:
+                        System.out.println("Saliendo del sistema...");
+                        break;
+                    default:
+                        System.out.println("Opción inválida. Intente de nuevo.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Por favor, ingrese un número válido.");
+            }
+        } while (opcion != 5);
+
+        SCANNER.close();
+    }
+
+    // --- Búsqueda de celda disponible ---
+    static int buscarCeldaDisponible() {
+        for (int i = 0; i < CAPACIDAD_TOTAL; i++) {
+            if (tiposVehiculos[i] == null) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // --- Registro de Entrada ---
     static void registrarEntrada() {
         int celda = buscarCeldaDisponible();
         if (celda == -1) {
@@ -46,26 +99,90 @@ public class Main {
         fechasIngreso[celda] = ingreso;
 
         System.out.println("¡Vehículo registrado con éxito en la celda #" + (celda + 1) + "!");
-
     }
 
-    public static void main(String[] args) {
-        registrarEntrada();
-    }
+    // --- Registro de Salida y Liquidación ---
+    static void registrarSalida() {
+        System.out.print("Ingrese el número de celda a liberar (1 a " + CAPACIDAD_TOTAL + "): ");
+        int numeroCelda = Integer.parseInt(SCANNER.nextLine());
+        int indice = numeroCelda - 1;
 
-
-
-    static int  buscarCeldaDisponible(){
-            for (int i = 0; i < CAPACIDAD_TOTAL; i++) {
-                if (tiposVehiculos[i] == null) {
-                    return i;
-                }
-            }
-            return -1;
+        if (indice < 0 || indice >= CAPACIDAD_TOTAL || tiposVehiculos[indice] == null) {
+            System.out.println("Celda inválida o se encuentra libre actualmente.");
+            return;
         }
 
+        LocalDateTime ingreso = fechasIngreso[indice];
+        LocalDateTime salida = leerFechaHora("Ingrese la fecha y hora de salida (yyyy-MM-dd HH:mm): ");
 
+        if (salida.isBefore(ingreso)) {
+            System.out.println("Error: La fecha de salida no puede ser anterior al ingreso.");
+            return;
+        }
 
+        long diasACobrar = ChronoUnit.DAYS.between(ingreso, salida);
+        LocalDateTime cursor = ingreso.plusDays(diasACobrar);
+        long minutosRestantes = Duration.between(cursor, salida).toMinutes();
+        long horasACobrar = (minutosRestantes + 59) / 60;
+
+        if (horasACobrar >= UMBRAL_HORAS_DIA) {
+            diasACobrar++;
+            horasACobrar = 0;
+        }
+
+        String tipo = tiposVehiculos[indice];
+        int tarifaDia = tipo.equals("CARRO") ? TARIFA_DIA_CARRO : TARIFA_DIA_MOTO;
+        int tarifaHora = tipo.equals("CARRO") ? TARIFA_HORA_CARRO : TARIFA_HORA_MOTO;
+
+        int totalDiasCobro = (int) diasACobrar * tarifaDia;
+        int totalHorasCobro = (int) horasACobrar * tarifaHora;
+        int totalPagar = totalDiasCobro + totalHorasCobro;
+
+        System.out.println("\n========== FACTURA DE SALIDA ==========");
+        System.out.println("Celda: " + numeroCelda);
+        System.out.println("Tipo de vehículo: " + tipo);
+        System.out.println("Ingreso: " + ingreso.format(FORMATO_FECHA_HORA));
+        System.out.println("Salida:  " + salida.format(FORMATO_FECHA_HORA));
+        System.out.println("Días cobrados (" + diasACobrar + "): $" + totalDiasCobro);
+        System.out.println("Horas cobradas (" + horasACobrar + "): $" + totalHorasCobro);
+        System.out.println("TOTAL A PAGAR:       $" + totalPagar);
+        System.out.println("=======================================");
+
+        if (tipo.equals("CARRO")) {
+            recaudoCarros += totalPagar;
+        } else {
+            recaudoMotos += totalPagar;
+        }
+
+        tiposVehiculos[indice] = null;
+        fechasIngreso[indice] = null;
+        System.out.println("¡Celda liberada con éxito!\n");
+    }
+
+    // --- Reporte de Ocupación ---
+    static void mostrarReporteOcupacion() {
+        int ocupadas = 0;
+        System.out.println("\n--- ESTADO DE LAS CELDAS ---");
+        for (int i = 0; i < CAPACIDAD_TOTAL; i++) {
+            if (tiposVehiculos[i] != null) {
+                System.out.println("Celda #" + (i + 1) + ": [OCUPADA] - " + tiposVehiculos[i]);
+                ocupadas++;
+            } else {
+                System.out.println("Celda #" + (i + 1) + ": [LIBRE]");
+            }
+        }
+        System.out.println("Ocupadas: " + ocupadas + " | Libres: " + (CAPACIDAD_TOTAL - ocupadas) + "\n");
+    }
+
+    // --- Reporte Financiero ---
+    static void mostrarReporteFinanciero() {
+        System.out.println("\n--- REPORTE FINANCIERO ---");
+        System.out.println("Recaudo Carros: $" + recaudoCarros);
+        System.out.println("Recaudo Motos:  $" + recaudoMotos);
+        System.out.println("TOTAL GENERAL:  $" + (recaudoCarros + recaudoMotos) + "\n");
+    }
+
+    // --- Validaciones de Fecha y Hora ---
     static boolean formatoFechaHoraValido(String texto) {
         if (texto.length() != 16
                 || texto.charAt(4) != '-'
@@ -74,7 +191,6 @@ public class Main {
                 || texto.charAt(13) != ':') {
             return false;
         }
-
 
         int anio = leerDigitos(texto, 0, 4);
         int mes = leerDigitos(texto, 5, 2);
@@ -112,13 +228,8 @@ public class Main {
             return LocalDateTime.parse(texto, FORMATO_FECHA_HORA);
         }
     }
-    static void imprimir(String texto){
+
+    static void imprimir(String texto) {
         System.out.println(texto);
-
     }
-
 }
-
-
-
-
