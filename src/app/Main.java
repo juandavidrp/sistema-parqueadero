@@ -110,7 +110,9 @@ public class Main {
         if (indice < 0 || indice >= CAPACIDAD_TOTAL || tiposVehiculos[indice] == null) {
             System.out.println("Celda inválida o se encuentra libre actualmente.");
             return;
+
         }
+
 
         LocalDateTime ingreso = fechasIngreso[indice];
         LocalDateTime salida = leerFechaHora("Ingrese la fecha y hora de salida (yyyy-MM-dd HH:mm): ");
@@ -162,7 +164,7 @@ public class Main {
     // --- Reporte de Ocupación ---
     static void mostrarReporteOcupacion() {
         int ocupadas = 0;
-        System.out.println("\n--- ESTADO DE LAS CELDAS ---");
+        System.out.println("--- ESTADO DE LAS CELDAS ---");
         for (int i = 0; i < CAPACIDAD_TOTAL; i++) {
             if (tiposVehiculos[i] != null) {
                 System.out.println("Celda #" + (i + 1) + ": [OCUPADA] - " + tiposVehiculos[i]);
